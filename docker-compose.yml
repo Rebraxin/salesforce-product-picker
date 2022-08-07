@@ -1,0 +1,24 @@
+version: "3.8"
+
+networks:
+  proxy_bridge:
+    external: true
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: dockerfiles/nginx.dockerfile
+    container_name: contentful-app-container
+    restart: always
+    networks:
+      proxy_bridge:
+    env_file:
+      - ./env/server.env
+    labels:
+      traefik.enable: true
+      traefik.http.routers.contentful-app-secure.entrypoints: ${ENTRYPOINT}
+      traefik.http.routers.contentful-app-secure.rule: Host(`${DOMAIN}`) || Host(`www.${DOMAIN}`)
+      traefik.http.services.contentful-app-secure.loadbalancer.server.port: 80
+      traefik.http.routers.contentful-app-secure.middlewares: main-redirect@file
+      traefik.docker.network: proxy_bridge
