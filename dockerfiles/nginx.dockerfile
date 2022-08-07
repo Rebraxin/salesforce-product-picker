@@ -21,6 +21,6 @@ RUN mv nginx.conf default.conf
 
 COPY --from=builder /app/build /var/www/html
 
-EXPOSE 80
+EXPOSE 3000
 
 CMD ["nginx", "-g", "daemon off;"]
