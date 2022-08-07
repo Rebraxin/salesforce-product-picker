@@ -3,13 +3,12 @@ FROM node:14-alpine as builder
 WORKDIR /app
 
 COPY app/package.json .
-COPY app/package-lock.json .
 
-RUN npm install
+RUN yarn install
 
 COPY app/ .
 
-RUN npm run build
+RUN yarn build
 
 FROM nginx:stable-alpine
 
@@ -21,6 +20,6 @@ RUN mv nginx.conf default.conf
 
 COPY --from=builder /app/build /var/www/html
 
-EXPOSE 3000
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
