@@ -12,20 +12,18 @@ import { FieldExtensionSDK } from "@contentful/app-sdk";
 import { /* useCMA, */ useSDK } from "@contentful/react-apps-toolkit";
 import { IoCloseSharp } from "react-icons/io5";
 
-const hostUrl = "bjch-003.sandbox.us01.dx.commercecloud.salesforce.com";
-const clientId = "1d04953b-9a0d-4bbb-b7c6-17dcc6095343";
-const siteId = "BgDemoIntl";
-
 const Field = () => {
   const sdk = useSDK<FieldExtensionSDK>();
 
-  console.log(sdk);
+  console.log(sdk.parameters);
 
   const [product, setProduct] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProducts = async (pid: any) => {
-    const url = `https://${hostUrl}/s/${siteId}/dw/shop/v21_9/product_search?client_id=${clientId}&expand=images&q=${pid}&`;
+    const { clientId, siteId, host } = sdk.parameters.installation;
+
+    const url = `https://${host}/s/${siteId}/dw/shop/v21_9/product_search?client_id=${clientId}&expand=images&q=${pid}&`;
 
     const response = await fetch(url).then((data) => data.json());
 
@@ -47,8 +45,6 @@ const Field = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  console.log(sdk.field.getValue());
 
   const openDialogHandler = () => {
     console.log("sdk app >>> ", sdk);
