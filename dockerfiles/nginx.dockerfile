@@ -3,9 +3,8 @@ FROM node:14-alpine as builder
 WORKDIR /app
 
 COPY app/package.json .
-COPY app/yarn.lock .
 
-RUN yarn
+RUN yarn install
 
 COPY app/ .
 

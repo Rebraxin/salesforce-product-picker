@@ -5,7 +5,7 @@ networks:
     external: true
 
 services:
-  app:
+  contentful-app:
     build:
       context: .
       dockerfile: dockerfiles/nginx.dockerfile
