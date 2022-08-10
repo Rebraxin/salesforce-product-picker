@@ -75,6 +75,7 @@ const ConfigScreen = () => {
       sdk.app.setReady();
     })();
   }, [sdk]);
+  console.log(parameters?.clientId?.length);
 
   return (
     <Flex

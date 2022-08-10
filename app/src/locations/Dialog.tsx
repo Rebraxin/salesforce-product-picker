@@ -19,18 +19,11 @@ import { DialogExtensionSDK } from "@contentful/app-sdk";
 import { useSDK } from "@contentful/react-apps-toolkit";
 import { IoCloseSharp } from "react-icons/io5";
 
-const hostUrl = "bjch-003.sandbox.us01.dx.commercecloud.salesforce.com";
-const clientId = "1d04953b-9a0d-4bbb-b7c6-17dcc6095343";
-const siteId = "BgDemoIntl";
-
-// const hostUrlBgDemo = "bjwq-002.sandbox.us01.dx.commercecloud.salesforce.com";
-// const clientIdBgDemo = "1d04953b-9a0d-4bbb-b7c6-17dcc6095343";
-// const siteIdBgDemo = "BgDemoIntl";
-
 const MAX_COUNT = 24;
 
 const Dialog = () => {
   const sdk = useSDK<DialogExtensionSDK>();
+  const { clientId, siteId, host } = sdk.parameters.installation;
 
   const [isLoading, setIsLoading] = useState(true);
   const [searchValue, setSearchValue] = useState("");
@@ -44,7 +37,7 @@ const Dialog = () => {
     const keyword =
       searchValue === null || searchValue === "" ? "new" : searchValue;
 
-    const url = `https://${hostUrl}/s/${siteId}/dw/shop/v21_9/product_search?client_id=${clientId}&expand=images&q=${keyword}&count=${MAX_COUNT}&start=${
+    const url = `https://${host}/s/${siteId}/dw/shop/v21_9/product_search?client_id=${clientId}&expand=images&q=${keyword}&count=${MAX_COUNT}&start=${
       page * MAX_COUNT
     }`;
 
