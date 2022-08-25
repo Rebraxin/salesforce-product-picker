@@ -3,43 +3,63 @@ import {
   Box,
   Button,
   Flex,
-  IconButton,
   Spinner,
   Stack,
   Text,
 } from "@contentful/f36-components";
 import { FieldExtensionSDK } from "@contentful/app-sdk";
-import { /* useCMA, */ useSDK } from "@contentful/react-apps-toolkit";
-import { IoCloseSharp } from "react-icons/io5";
+import { useSDK } from "@contentful/react-apps-toolkit";
+import CategoriesView from "../components/field-screen/CategoriesView";
+import ProductsView from "../components/field-screen/ProductsView";
+import { getQuery } from "../utils/get-query";
 
 const Field = () => {
   const sdk = useSDK<FieldExtensionSDK>();
+  sdk.window.startAutoResizer();
 
-  console.log(sdk.parameters);
+  // Config Parameters
+  const { configFields } = sdk.parameters.installation;
+  // Current Field ID
+  const { field } = sdk.ids;
+  // Selected Type for the current Field
+  const { type } = configFields.find((el: any) => el.id === field);
 
-  const [product, setProduct] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [stateCategories, setStateCategories] = useState<any>(null);
+  const [stateProducts, setStateProducts] = useState<any>(null);
+  const [cfProductIds, setCfProductIds] = useState<any>(sdk.field.getValue());
+  const [cfCategoryIds, setCfCategoryIds] = useState<any>(sdk.field.getValue());
+  const [isLoading, setIsLoading] = useState(false);
 
-  const fetchProducts = async (pid: any) => {
-    const { clientId, siteId, host } = sdk.parameters.installation;
+  const fetchItemsFromSFCC = async (ids?: string[] | number[]) => {
+    try {
+      const response = await fetch(getQuery(type, sdk, ids)).then((data: any) =>
+        data.json()
+      );
 
-    const url = `https://${host}/s/${siteId}/dw/shop/v21_9/product_search?client_id=${clientId}&expand=images&q=${pid}&`;
-
-    const response = await fetch(url).then((data) => data.json());
-
-    setProduct(response?.hits[0]);
+      if (type === "products") {
+        setStateProducts(response?.data);
+        setIsLoading(false);
+      }
+      if (type === "categories") {
+        setStateCategories(response?.categories);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {
-    if (product?.product_id) {
-      sdk.field.setValue(product?.product_id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product]);
+    const existingIds = sdk.field.getValue();
 
-  useEffect(() => {
-    if (sdk.field.getValue()) {
-      fetchProducts(sdk.field.getValue()).then(() => setIsLoading(false));
+    setIsLoading(true);
+    if (existingIds) {
+      if (type === "products") {
+        fetchItemsFromSFCC(existingIds);
+      }
+      if (type === "categories") {
+        fetchItemsFromSFCC();
+      }
     } else {
       setIsLoading(false);
     }
@@ -47,88 +67,106 @@ const Field = () => {
   }, []);
 
   const openDialogHandler = () => {
-    console.log("sdk app >>> ", sdk);
     sdk.dialogs
       .openCurrentApp({
-        width: "fullWidth",
-        shouldCloseOnEscapePress: true,
-        shouldCloseOnOverlayClick: true,
-        minHeight: "85vh",
-        parameters: { test: true, value: 42 },
+        width: "large",
+        parameters: {
+          fieldProducts: cfProductIds,
+          fieldCategories: cfCategoryIds,
+        },
       })
-      .then(({ selectedProduct }) => setProduct(selectedProduct));
-  };
+      .then(({ selectedIds }) => {
+        setIsLoading(true);
 
-  const handleRemoveProduct = () => {
-    sdk.field.setValue(undefined);
-    setProduct(null);
+        if (type === "products") {
+          sdk.field.setValue(selectedIds);
+          fetchItemsFromSFCC(selectedIds);
+        }
+
+        if (type === "categories") {
+          sdk.field.setValue(selectedIds);
+          setCfCategoryIds(selectedIds);
+          fetchItemsFromSFCC();
+        }
+      });
   };
 
   if (isLoading) {
     return (
       <Stack
-        marginTop='spacingL'
-        flexDirection='column'
-        alignItems='flex-start'
+        marginTop="spacingL"
+        flexDirection="column"
+        alignItems="flex-start"
       >
         <Flex>
-          <Text marginRight='spacingXs'>Loading</Text>
+          <Text marginRight="spacingXs">Loading</Text>
           <Spinner />
         </Flex>
       </Stack>
     );
   }
 
-  if (product) {
+  if (stateCategories?.length > 0 && type === "categories") {
     return (
-      <Box style={{ marginTop: "10px" }}>
-        <Stack
-          flexDirection='row'
-          justifyContent='space-between'
-          paddingRight='spacingL'
-        >
-          <Stack flexDirection='row'>
-            <Box
-              style={{
-                width: "85px",
-                height: "110px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-                marginRight: "20px",
-              }}
-            >
-              <img src={product.image.link} alt={product.image.alt} />
-            </Box>
-            <Stack flexDirection='column' alignItems='flex-start'>
-              <Text fontWeight='fontWeightDemiBold' fontSize='fontSizeL'>
-                {product.product_name}
-              </Text>
-              <Text fontSize='fontSizeS'>Ref: {product.product_id}</Text>
-            </Stack>
-          </Stack>
-          <Stack>
-            <IconButton
-              variant='negative'
-              aria-label='Select the date'
-              icon={<IoCloseSharp size='20px' />}
-              onClick={handleRemoveProduct}
+      <>
+        <CategoriesView
+          {...{
+            sdk,
+            stateCategories,
+            setStateCategories,
+            cfCategoryIds,
+            setCfCategoryIds,
+          }}
+        />
+        <Stack alignItems="center" padding="spacingL">
+          <Box style={{ width: "70px" }}>
+            <img
+              src="https://res.cloudinary.com/ddimmoz2o/image/upload/v1659689622/gruezi/logo/sfcc_logo_ef6nwt.png"
+              alt="sfcc logo"
             />
-          </Stack>
+          </Box>
+          <Button onClick={() => openDialogHandler()}>Select a Category</Button>
         </Stack>
-      </Box>
+      </>
     );
   }
+
+  if (stateProducts?.length > 0 && type === "products") {
+    return (
+      <>
+        <ProductsView
+          {...{
+            sdk,
+            stateProducts,
+            setStateProducts,
+            cfProductIds,
+            setCfProductIds,
+          }}
+        />
+        <Stack alignItems="center" padding="spacingL">
+          <Box style={{ width: "70px" }}>
+            <img
+              src="https://res.cloudinary.com/ddimmoz2o/image/upload/v1659689622/gruezi/logo/sfcc_logo_ef6nwt.png"
+              alt="sfcc logo"
+            />
+          </Box>
+          <Button onClick={() => openDialogHandler()}>Select a Product</Button>
+        </Stack>
+      </>
+    );
+  }
+
   return (
-    <Stack alignItems='center' paddingTop='spacingXl'>
-      <Box style={{ width: "100px", height: "50px" }}>
+    <Stack alignItems="center" padding="spacingL">
+      <Box style={{ width: "70px" }}>
         <img
-          src='https://res.cloudinary.com/ddimmoz2o/image/upload/v1659689622/gruezi/logo/sfcc_logo_ef6nwt.png'
-          alt='sfcc logo'
+          src="https://res.cloudinary.com/ddimmoz2o/image/upload/v1659689622/gruezi/logo/sfcc_logo_ef6nwt.png"
+          alt="sfcc logo"
         />
       </Box>
-      <Button onClick={() => openDialogHandler()}>Select a Product</Button>
+      <Button onClick={() => openDialogHandler()}>
+        Select a {type === "categories" ? "Category" : "Product"}
+      </Button>
     </Stack>
   );
 };

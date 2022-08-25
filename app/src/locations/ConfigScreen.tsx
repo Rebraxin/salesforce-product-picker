@@ -1,18 +1,20 @@
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, Fragment } from "react";
 import { AppExtensionSDK } from "@contentful/app-sdk";
 import {
   Heading,
   Form,
-  Paragraph,
   Flex,
-  TextInput,
-  MenuDivider,
   Stack,
   Box,
-  FormControl,
+  MenuDivider,
+  Text,
 } from "@contentful/f36-components";
 import { css } from "emotion";
-import { /* useCMA, */ useSDK } from "@contentful/react-apps-toolkit";
+import { useCMA, useSDK } from "@contentful/react-apps-toolkit";
+import { configFields } from "../data/config-fields";
+import ConfigField from "../components/config-screen/ConfigField";
+import ConfigHeaderImg from "../components/config-screen/ConfigHeaderImg";
+import FieldCheckbox from "../components/config-screen/FieldCheckbox";
 
 export interface AppInstallationParameters {
   host: string;
@@ -21,18 +23,14 @@ export interface AppInstallationParameters {
 }
 
 const ConfigScreen = () => {
-  const [parameters, setParameters] = useState<AppInstallationParameters>({
-    host: "",
-    clientId: "",
-    siteId: "",
-  });
+  const [parameters, setParameters] = useState<any>({});
 
   const sdk = useSDK<AppExtensionSDK>();
   /*
      To use the cma, inject it as follows.
      If it is not needed, you can remove the next line.
   */
-  // const cma = useCMA();
+  const cma = useCMA();
 
   const onConfigure = useCallback(async () => {
     // This method will be called when a user clicks on "Install"
@@ -75,11 +73,26 @@ const ConfigScreen = () => {
       sdk.app.setReady();
     })();
   }, [sdk]);
-  console.log(parameters?.clientId?.length);
+
+  const [spaceEntries, setSpaceEntries] = useState<any>(null);
+
+  useEffect(() => {
+    const entries = async () => {
+      try {
+        const response = await cma.contentType.getMany({});
+
+        return setSpaceEntries(response as any);
+      } catch (error) {
+        console.log("error >>> ", error);
+      }
+    };
+
+    entries();
+  }, [cma]);
 
   return (
     <Flex
-      flexDirection='column'
+      flexDirection="column"
       className={css({
         position: "relative",
       })}
@@ -88,7 +101,7 @@ const ConfigScreen = () => {
         className={css({
           position: "absolute",
           zIndex: -1,
-          height: "300px",
+          height: "250px",
           top: 0,
           left: 0,
           width: "100%",
@@ -100,155 +113,84 @@ const ConfigScreen = () => {
           backgroundColor: "white",
           maxWidth: "800px",
           width: "100%",
-          margin: "150px auto 0",
-          padding: "50px 0",
+          margin: "100px auto",
+          padding: "40px",
           boxShadow: "0px 0px 10px 2px rgba(0,0,0,0.25)",
           borderRadius: "5px",
-          position: "relative",
+          flexDirection: "column",
         })}
       >
-        <Box
-          className={css({
-            position: "absolute",
-            bottom: "-120px",
-            transform: "translateX(-50%)",
-            left: "50%",
-            width: "100px",
-          })}
-        >
-          <img
-            width='100%'
-            height='auto'
-            src='https://res.cloudinary.com/ddimmoz2o/image/upload/v1659689622/gruezi/logo/sfcc_logo_ef6nwt.png'
-            alt='Salesforce CommerceCloud Logo'
-          />
-        </Box>
+        <ConfigHeaderImg />
         <Form
           className={css({
             width: "100%",
           })}
         >
-          <Stack
-            flexDirection='column'
-            alignItems='flex-start'
-            className={css({
-              padding: "0 30px 10px",
-            })}
-          >
-            <Heading>About Salesforce CommerceCloud Product Picker</Heading>
-            <Paragraph>
-              Contentful-App to pick products from Salesforce CommerceCloud
-              indices.
-            </Paragraph>
+          <Stack spacing="none" flexDirection="column" alignItems="flex-start">
+            <Heading>Configuration</Heading>
+            <ConfigField
+              field={configFields[0]}
+              parameters={parameters}
+              value={parameters.host ?? ""}
+              onChange={(e: any) =>
+                setParameters({
+                  ...parameters,
+                  host: e.target.value,
+                })
+              }
+            />
+            <ConfigField
+              field={configFields[1]}
+              parameters={parameters}
+              value={parameters.clientId ?? ""}
+              onChange={(e: any) =>
+                setParameters({
+                  ...parameters,
+                  clientId: e.target.value,
+                })
+              }
+            />
+            <ConfigField
+              field={configFields[2]}
+              parameters={parameters}
+              value={parameters.siteId ?? ""}
+              onChange={(e: any) =>
+                setParameters({
+                  ...parameters,
+                  siteId: e.target.value,
+                })
+              }
+            />
           </Stack>
           <MenuDivider />
-          <Stack
-            flexDirection='column'
-            alignItems='flex-start'
-            className={css({
-              padding: "10px 30px",
+          <Heading marginTop="spacingL">Assign to fields</Heading>
+          <Text>
+            This app can only be used with <b>Short text</b> or{" "}
+            <b>Short text, list</b> fields. Select which fields you’d like to
+            enable for this app.
+          </Text>
+          <Box marginTop="spacingL">
+            {spaceEntries?.items.map((entry: any, index: number) => {
+              return (
+                <Fragment key={index}>
+                  <Heading
+                    style={{ textTransform: "capitalize", fontSize: "16px" }}
+                  >
+                    {entry.name}
+                  </Heading>
+                  {entry?.fields.map((field: any) => (
+                    <Fragment key={field.id}>
+                      <FieldCheckbox
+                        {...field}
+                        parameters={parameters}
+                        setParameters={setParameters}
+                      />
+                    </Fragment>
+                  ))}
+                </Fragment>
+              );
             })}
-          >
-            <Heading>Configuration</Heading>
-            <Stack
-              fullWidth
-              flexDirection='column'
-              alignItems='flex-start'
-              spacing='none'
-              marginBottom='spacingL'
-            >
-              <FormControl.Label>Host</FormControl.Label>
-              <TextInput
-                placeholder='Provide the host of your Application here'
-                value={parameters?.host !== "" ? parameters?.host : ""}
-                onChange={(e) =>
-                  setParameters({
-                    ...parameters,
-                    host: e.target.value,
-                  })
-                }
-              />
-              <Stack
-                fullWidth
-                justifyContent='space-between'
-                className={css({ padding: "0 10px" })}
-              >
-                <FormControl.HelpText>
-                  ex: er7-fgh.sandbox.eu01.dx.commercecloud.salesforce.com
-                </FormControl.HelpText>
-                <FormControl.HelpText>
-                  {parameters?.host?.length > 0 ? parameters?.host?.length : 0}
-                  /255
-                </FormControl.HelpText>
-              </Stack>
-            </Stack>
-            <Stack
-              fullWidth
-              flexDirection='column'
-              alignItems='flex-start'
-              spacing='none'
-              marginBottom='spacingL'
-            >
-              <FormControl.Label>Client ID</FormControl.Label>
-              <TextInput
-                placeholder='Provide the client ID of your Application here'
-                value={parameters?.clientId !== "" ? parameters?.clientId : ""}
-                onChange={(e) =>
-                  setParameters({
-                    ...parameters,
-                    clientId: e.target.value,
-                  })
-                }
-              />
-              <Stack
-                fullWidth
-                justifyContent='space-between'
-                className={css({ padding: "0 10px" })}
-              >
-                <FormControl.HelpText>
-                  ex: 1d0953b-9a0dty-54bbb-b7c67-17c6095343
-                </FormControl.HelpText>
-                <FormControl.HelpText>
-                  {parameters?.clientId?.length > 0
-                    ? parameters?.clientId?.length
-                    : 0}
-                  /255
-                </FormControl.HelpText>
-              </Stack>
-            </Stack>
-            <Stack
-              fullWidth
-              flexDirection='column'
-              alignItems='flex-start'
-              spacing='none'
-              marginBottom='spacingL'
-            >
-              <FormControl.Label>Site ID</FormControl.Label>
-              <TextInput
-                placeholder='Provide the side ID of your Application here'
-                value={parameters?.siteId !== "" ? parameters?.siteId : ""}
-                onChange={(e) =>
-                  setParameters({
-                    ...parameters,
-                    siteId: e.target.value,
-                  })
-                }
-              />
-              <Stack
-                fullWidth
-                justifyContent='space-between'
-                className={css({ padding: "0 10px" })}
-              >
-                <FormControl.HelpText>ex: RefArch</FormControl.HelpText>
-                <FormControl.HelpText>
-                  {parameters?.siteId?.length > 0
-                    ? parameters?.siteId?.length
-                    : 0}
-                  /255
-                </FormControl.HelpText>
-              </Stack>
-            </Stack>
-          </Stack>
+          </Box>
         </Form>
       </Stack>
     </Flex>
