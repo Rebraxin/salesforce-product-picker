@@ -25,7 +25,7 @@ export interface AppInstallationParameters {
 const ConfigScreen = () => {
   const [parameters, setParameters] = useState<any>({});
 
-  const sdk = useSDK<AppExtensionSDK>();
+  const sdk = useSDK<any>();
   /*
      To use the cma, inject it as follows.
      If it is not needed, you can remove the next line.
